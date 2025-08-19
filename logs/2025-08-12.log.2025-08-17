@@ -1,0 +1,4 @@
+2025-08-17 05:00:03,887 - logger_config - INFO - Executing run method at 05:00:03 for instance 3222711922704
+2025-08-17 05:00:03,967 - logger_config - INFO - [Daily] Queued event creation for schedule ID 31 on 2025-08-17 at 20:00:00
+2025-08-17 05:00:03,967 - logger_config - INFO - Created 1 new events
+2025-08-17 05:00:03,982 - logger_config - INFO - Event creation and updates completed
