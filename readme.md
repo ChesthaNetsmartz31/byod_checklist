@@ -1,96 +1,194 @@
-Cron Job Scheduler Application
-This is a Python-based application designed to manage and schedule recurring checklist events using an asynchronous scheduler. It utilizes a PostgreSQL database to store schedule data and leverages the APScheduler library for task scheduling.
-Features
+# ⏰ Cron Job Scheduler Application
 
-Flexible Scheduling: Supports daily, weekly, weekday, quarterly(Not confirmed yet), monthly, ad-hoc, annually, and one-time event schedules.
-Database Integration: Reflects and manages tables from a PostgreSQL database for schedules and events.
-Logging: Provides detailed logging to track scheduler activities and errors.
-API Support: Includes an optional API endpoint to trigger jobs manually.
-Async Support: Built with asyncio for non-blocking operations.
+This project provides **Python-based applications** to manage and schedule recurring checklist events using **FastAPI**, **PostgreSQL**, and **APScheduler**.
 
-Prerequisites
+It includes two applications:
 
-Python 3.8 or higher
-PostgreSQL database
-Required Python packages:
-fastapi
-uvicorn
-sqlalchemy
-sqlalchemy[asyncio]
-apscheduler
-pytz
-psycopg2-binary (or your preferred PostgreSQL driver)
+* **`app_today`** → Generates checklist events only for **today**.
+* **`app_three_days`** → Generates checklist events for **today + the next 2 days**.
 
+---
 
+## ✨ Features
 
-Installation
+* **Flexible Scheduling**
+  Supports multiple frequencies:
 
-Clone the repository:
-git clone <repository-url>
-cd cron
+  * Daily
+  * Weekly
+  * Weekday
+  * Monthly
+  * Annually
+  * Ad-hoc
+  * One-time events
+  * *(Quarterly support is under review)*
 
+* **Database Integration**
 
-Create a virtual environment and activate it:
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+  * Schedules are pulled from PostgreSQL.
+  * Events are inserted if not already present.
 
+* **Logging**
 
-Install dependencies:
-pip install -r requirements.txt
+  * Tracks execution flow, errors, and inserted events.
 
+* **API Endpoints**
 
-Configure the database settings:
+  * Trigger event generation manually via FastAPI.
 
-Create a config.py file with your database URLs:settings = {
-    "sync_database_url": "postgresql://user:password@localhost:5432/cron_db",
-    "async_database_url": "postgresql+asyncpg://user:password@localhost:5432/cron_db"
-}
+* **Two Versions**
 
+  * `app_today`: Runs daily for current date.
+  * `app_three_days`: Runs for 3-day rolling window.
 
-Update user, password, and cron_db with your PostgreSQL credentials and database name.
+---
 
+## 📦 Prerequisites
 
-Set up the database:
+* Python **3.8+**
+* PostgreSQL database
+* Required Python packages:
 
-Create the database and tables manually or use a migration tool.
-Required tables: checklist_schedule, checklist_frequency, checklist_schedule_event, checklist_schedule_date, checklist_template.
+  ```
+  fastapi
+  uvicorn
+  sqlalchemy
+  sqlalchemy[asyncio]
+  apscheduler
+  pytz
+  psycopg2-binary
+  ```
 
+---
 
+## ⚙️ Installation
 
-Usage
-Running the Scheduler
+1. **Clone the repository**
 
-Start the application:
-python main.py
+   ```bash
+   git clone <repository-url>
+   cd cron
+   ```
 
+2. **Create a virtual environment**
 
-The scheduler will run daily at the configured time and process events based on the schedule data.
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate       # On macOS/Linux
+   .venv\Scripts\activate          # On Windows
+   ```
 
+3. **Install dependencies**
 
-Check logs in the logs/ directory for execution details.
+   ```bash
+   pip install -r requirements.txt
+   ```
 
+4. **Configure database**
 
+   * Create `config.py`:
 
-This schedules the run method to execute 1 minute after the API call.
+     ```python
+     settings = {
+         "sync_database_url": "postgresql://user:password@localhost:5432/cron_db",
+         "async_database_url": "postgresql+asyncpg://user:password@localhost:5432/cron_db"
+     }
+     ```
+   * Replace `user`, `password`, and `cron_db` with actual credentials.
 
+5. **Prepare required tables**
 
-Configuration
+   * `checklist_schedule`
+   * `checklist_frequency`
+   * `checklist_schedule_event`
+   * `checklist_schedule_date`
+   * `checklist_template`
 
-Cron Time: Adjust cron_hour and cron_minute in cron.py to set the daily run time.
-Misfire Grace Time: Modify misfire_grace_time in add_job calls to handle delayed starts (default 300 seconds).
-Database Tables: Ensure the schema includes all required columns (e.g., annually_date, once_date).
+---
 
+## 🚀 Usage
 
+### Run `app_today`
 
-checklist_frequency values: 7 (Annually), 8 (Once), etc.
+Generates checklist events for **today only**.
 
-Logging
+```bash
+uvicorn app_today:app --reload --host 0.0.0.0 --port 8000
+```
 
-Logs are stored in the logs/ directory with daily rotation.
-Use logger_config.py to customize logging levels or handlers.
+* Default endpoint:
 
-Troubleshooting
+  ```http
+  GET /checklist/
+  ```
+* Trigger generation manually:
 
-Scheduler Not Running: Ensure self.scheduler.start() is called in cron.py and the event loop is active in main.py.
-No Events Created: Verify schedule data matches the current date and time (e.g., today is 2025-08-13).
-API Issues: Check server logs and ensure the database connection is active.
+  ```http
+  POST /checklist/generate-today
+  ```
+
+---
+
+### Run `app_three_days`
+
+Generates checklist events for **today + next 2 days**.
+
+```bash
+uvicorn app_three_days:app --reload --host 0.0.0.0 --port 8001
+```
+
+* Default endpoint:
+
+  ```http
+  GET /checklist/
+  ```
+* Trigger generation manually:
+
+  ```http
+  POST /checklist/generate-three-days
+  ```
+
+---
+
+## 🔧 Configuration
+
+* **Cron Time** → Set in `cron.py`:
+
+  ```python
+  cron_hour = 9
+  cron_minute = 30
+  ```
+* **Misfire Grace Time** → Defaults to `300s` (5 minutes).
+* **Frequency Codes** (from `checklist_frequency` table):
+
+  * `7` → Annually
+  * `8` → One-time
+
+---
+
+## 📜 Logging
+
+* Logs are written to `checklist.log` (per app).
+* Includes job start/stop, inserts, and errors.
+* Configurable in `logging.basicConfig()` inside each app.
+
+---
+
+## 🛠️ Troubleshooting
+
+* **Scheduler not running**
+
+  * Ensure `.start()` is called in each app's startup event.
+* **No events generated**
+
+  * Check that schedule data matches the target date(s).
+* **API not responding**
+
+  * Verify FastAPI server is running at correct port.
+  * Ensure PostgreSQL connection works.
+
+---
+
+✅ With this setup, you can choose between **daily-only (`app_today`)** or **rolling 3-day (`app_three_days`)** scheduling, depending on your business requirements.
+
+---
