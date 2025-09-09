@@ -1,8 +1,8 @@
-from datetime import date, timedelta, time
+from datetime import date, timedelta, time, datetime
 import logging
 from typing import Any, Dict, List, Optional
-from core.db import get_connection
-from utils.checklist_utils import _times_for_schedule_today
+from app_three_days.core.db import get_connection
+from app_three_days.utils.checklist_utils import _times_for_schedule_today
 
 def _insert_event_if_absent(cur, workplace: int, schedule_id: int, template_id: int,
                             scheduled_date: date, scheduled_time: Optional[time],
@@ -79,3 +79,31 @@ def generate_events_for_three_days(start_date: Optional[date] = None) -> int:
         d = today + timedelta(days=offset)
         total_inserts += generate_events_for_day(d)
     return total_inserts
+
+
+def mark_overdue_events() -> int:
+    """Mark pending checklist events as overdue if scheduled datetime < now"""
+    updated_count = 0
+    now = datetime.now()
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE checklist_schedule_event
+                SET status = 'overdue'
+                WHERE status = 'pending'
+                  AND (
+                        (scheduled_time IS NOT NULL AND (scheduled_date + scheduled_time) < NOW())
+                        OR
+                        (scheduled_time IS NULL AND scheduled_date < CURRENT_DATE)
+                      )
+                RETURNING id;
+                """
+            )
+            rows = cur.fetchall()
+            updated_count = len(rows)
+            conn.commit()
+
+    logging.info(f"🔄 Marked {updated_count} events as overdue")
+    return updated_count

@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from routers import checklist_router
-from core.scheduler import scheduler, populate_three_days_checklists
+from app_three_days.routers import checklist_router
+from app_three_days.core.scheduler import scheduler, populate_three_days_checklists, check_overdue_events
 import logging
 
-app = FastAPI(root_path="/checklist-3days")
+app = FastAPI(root_path="/checklist")
 
 # Routers
 app.include_router(checklist_router.router, prefix="", tags=["Checklist"])
@@ -11,9 +11,10 @@ app.include_router(checklist_router.router, prefix="", tags=["Checklist"])
 # Startup & Shutdown
 @app.on_event("startup")
 def start_scheduler():
-    scheduler.add_job(populate_three_days_checklists, "interval", minutes=720)
+    scheduler.add_job(populate_three_days_checklists, "interval", minutes=720)  # every 12h
+    scheduler.add_job(check_overdue_events, "interval", minutes=60)  # every 1h
     scheduler.start()
-    logging.info("⏰ Scheduler started (interval=720m)")
+    logging.info("⏰ Scheduler started (checklists=720m, overdue=60m)")
 
 @app.on_event("shutdown")
 def shutdown_scheduler():

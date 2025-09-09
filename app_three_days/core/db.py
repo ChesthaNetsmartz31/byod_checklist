@@ -4,7 +4,7 @@ from psycopg2.extras import RealDictCursor
 DB_KW = dict(
     dbname="checklistdb",
     user="postgres",
-    password="postgres",
+    password="123456",
     host="localhost",
     port=5432,
 )
